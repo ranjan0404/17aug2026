@@ -1,4 +1,3 @@
-
 name: Terraform CI
 
 on:
@@ -19,7 +18,7 @@ jobs:
     steps:
 
       # ==========================================
-      # 1. Checkout Repository
+      # 1. Checkout
       # ==========================================
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,7 +38,7 @@ jobs:
         run: terraform version
 
       # ==========================================
-      # 4. Azure Login using Client Secret
+      # 4. Azure Login - Service Principal
       # ==========================================
       - name: Azure Login
         uses: azure/login@v2
