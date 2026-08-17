@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   terraform:
@@ -38,9 +39,27 @@ jobs:
       - name: Terraform Version
         run: terraform version
 
-    
       # -----------------------------------
-      # 5. TFLint
+      # 4. Azure Login
+      # -----------------------------------
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.CLIENT_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.CLIENT_SECRET }}
+
+      # # -----------------------------------
+      # # 5. Gitleaks
+      # # -----------------------------------
+      # - name: Gitleaks Scan
+      #   uses: gitleaks/gitleaks-action@v2
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # -----------------------------------
+      # 6. TFLint
       # -----------------------------------
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4
@@ -51,7 +70,7 @@ jobs:
           tflint
 
       # -----------------------------------
-      # 6. tfsec Security Scan
+      # 7. tfsec Security Scan
       # -----------------------------------
       - name: Run tfsec
         uses: aquasecurity/tfsec-action@v1.0.3
@@ -60,48 +79,49 @@ jobs:
           soft_fail: false
 
       # -----------------------------------
-      # 7. Terraform Init
+      # 8. Terraform Init
       # -----------------------------------
       - name: Terraform Init
         run: terraform init
 
       # -----------------------------------
-      # 8. Terraform Validate
+      # 9. Terraform Validate
       # -----------------------------------
       - name: Terraform Validate
         run: terraform validate
 
       # -----------------------------------
-      # 9. Terraform Plan
+      # 10. Terraform Plan
       # -----------------------------------
       - name: Terraform Plan
-        run: |
-          terraform plan \
-            -out=tfplan
+        run: terraform plan -out=tfplan
 
       # -----------------------------------
-      # 10. Convert Plan to JSON
+      # 11. Terraform Show
       # -----------------------------------
       - name: Terraform Show
-        run: |
-          terraform show \
-            -json tfplan > tfplan.json
+        run: terraform show -json tfplan > tfplan.json
+
+      # # -----------------------------------
+      # # 12. Setup Infracost
+      # # -----------------------------------
+      # - name: Setup Infracost
+      #   uses: infracost/actions/setup@v3
+
+      # # -----------------------------------
+      # # 13. Infracost
+      # # -----------------------------------
+      # - name: Infracost Breakdown
+      #   run: |
+      #     infracost breakdown \
+      #       --path tfplan.json \
+      #       --format json \
+      #       --out-file infracost.json
+      #   env:
+      #     INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
 
       # -----------------------------------
-      # 11. azure log in
+      # 14. Terraform Apply
       # -----------------------------------
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          client-id: ${{ secrets.CLIENT_ID }}
-          tenant-id: ${{ secrets.TENANT_ID }}
-          subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
-          client-secret: ${{ secrets.CLIENT_SECRET }}
-
-      # -----------------------------------
-      # 11. terraform apply
-      # -----------------------------------
-      - name : terraform apply
-        run: terraform apply -auto-approve
-
-```
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
