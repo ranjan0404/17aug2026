@@ -10,118 +10,91 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   terraform:
-    name: Terraform Security Scan and Plan
+    name: Terraform Security Scan, Plan and Apply
     runs-on: ubuntu-latest
 
     steps:
 
-      # -----------------------------------
+      # ==========================================
       # 1. Checkout Repository
-      # -----------------------------------
+      # ==========================================
       - name: Checkout
         uses: actions/checkout@v4
 
-      # -----------------------------------
+      # ==========================================
       # 2. Setup Terraform
-      # -----------------------------------
+      # ==========================================
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.9.8
 
-      # -----------------------------------
+      # ==========================================
       # 3. Terraform Version
-      # -----------------------------------
+      # ==========================================
       - name: Terraform Version
         run: terraform version
 
-      # -----------------------------------
-      # 4. Azure Login
-      # -----------------------------------
+      # ==========================================
+      # 4. Azure Login using Client Secret
+      # ==========================================
       - name: Azure Login
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.CLIENT_ID }}
-          tenant-id: ${{ secrets.TENANT_ID }}
-          subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
-          client-secret: ${{ secrets.CLIENT_SECRET }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # # -----------------------------------
-      # # 5. Gitleaks
-      # # -----------------------------------
-      # - name: Gitleaks Scan
-      #   uses: gitleaks/gitleaks-action@v2
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # ==========================================
+      # 5. Check Azure Account
+      # ==========================================
+      - name: Azure Account
+        run: az account show
 
-      # -----------------------------------
-      # 6. TFLint
-      # -----------------------------------
+      # ==========================================
+      # 6. Setup TFLint
+      # ==========================================
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4
 
+      # ==========================================
+      # 7. TFLint Scan
+      # ==========================================
       - name: Run TFLint
         run: |
           tflint --init
           tflint
 
-      # -----------------------------------
-      # 7. tfsec Security Scan
-      # -----------------------------------
+      # ==========================================
+      # 8. tfsec Security Scan
+      # ==========================================
       - name: Run tfsec
         uses: aquasecurity/tfsec-action@v1.0.3
         with:
           working_directory: .
           soft_fail: false
 
-      # -----------------------------------
-      # 8. Terraform Init
-      # -----------------------------------
+      # ==========================================
+      # 9. Terraform Init
+      # ==========================================
       - name: Terraform Init
         run: terraform init
 
-      # -----------------------------------
-      # 9. Terraform Validate
-      # -----------------------------------
+      # ==========================================
+      # 10. Terraform Validate
+      # ==========================================
       - name: Terraform Validate
         run: terraform validate
 
-      # -----------------------------------
-      # 10. Terraform Plan
-      # -----------------------------------
+      # ==========================================
+      # 11. Terraform Plan
+      # ==========================================
       - name: Terraform Plan
         run: terraform plan -out=tfplan
 
-      # -----------------------------------
-      # 11. Terraform Show
-      # -----------------------------------
-      - name: Terraform Show
-        run: terraform show -json tfplan > tfplan.json
-
-      # # -----------------------------------
-      # # 12. Setup Infracost
-      # # -----------------------------------
-      # - name: Setup Infracost
-      #   uses: infracost/actions/setup@v3
-
-      # # -----------------------------------
-      # # 13. Infracost
-      # # -----------------------------------
-      # - name: Infracost Breakdown
-      #   run: |
-      #     infracost breakdown \
-      #       --path tfplan.json \
-      #       --format json \
-      #       --out-file infracost.json
-      #   env:
-      #     INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
-
-      # -----------------------------------
-      # 14. Terraform Apply
-      # -----------------------------------
+      # ==========================================
+      # 12. Terraform Apply
+      # ==========================================
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
